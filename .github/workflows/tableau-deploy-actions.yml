@@ -1,0 +1,63 @@
+name: CI/CD Pipeline for Tableau
+on:
+  push:
+    branches:
+      - stage
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tableauserverclient
+
+    - name: List installed packages
+      run: pip list
+    
+    - name: Set environment server url
+      run: |
+        if [ "${{ github.ref_name }}" = "main" ]; then
+          echo "TABLEAU_SITE_ID=CA_EMEAandAPAC" >> $GITHUB_ENV
+          echo "TABLEAU_PROJECT=test_deployment" >> $GITHUB_ENV
+          echo "TABLEAU_SERVER_URL=https://tableau.com" >> $GITHUB_ENV
+        else
+          echo "TABLEAU_SITE_ID=CA_EMEAandAPAC" >> $GITHUB_ENV
+          echo "TABLEAU_PROJECT=test_deployment" >> $GITHUB_ENV
+          echo "TABLEAU_SERVER_URL=https://uattableau.com" >> $GITHUB_ENV
+
+        fi
+
+    - name: Debug
+      run: |
+        echo "Server URL: $TABLEAU_SERVER_URL"
+        echo "Site ID: $TABLEAU_SITE_ID"
+        echo "Project name: $TABLEAU_PROJECT"
+
+    - name: Deploy to Tableau Server
+      env:
+        TABLEAU_USERNAME: ${{ secrets.TABLEAU_USERNAME }}
+        TABLEAU_PASSWORD: ${{ secrets.TABLEAU_PASSWORD }} 
+        TABLEAU_SITE_ID: ${{ env.TABLEAU_SITE_ID }}  
+        TABLEAU_PROJECT: ${{ env.TABLEAU_PROJECT }}  
+        TABLEAU_SERVER_URL: ${{ env.TABLEAU_SERVER_URL }}
+      run: python deploy.py
